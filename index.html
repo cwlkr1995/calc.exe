@@ -320,26 +320,38 @@
             document.body.removeChild(tempArea);
         });
 
-        // Запуск анимации входа с логотипом izitap.kz и каскадным появлением интерфейса
-        renderNiche('repair');
-        const introSplash = document.getElementById('intro-splash');
-        const introProgress = document.getElementById('intro-progress');
+        // Безопасный запуск анимации входа с логотипом izitap.kz и гарантированное открытие интерфейса
+        function dismissIntroSplash() {
+            const splash = document.getElementById('intro-splash');
+            document.body.classList.add('app-ready');
+            if (splash) {
+                splash.classList.add('intro-exit');
+                setTimeout(() => {
+                    if (splash && splash.parentNode) {
+                        splash.remove();
+                    }
+                }, 800);
+            }
+        }
 
+        try {
+            if (typeof renderNiche === 'function') {
+                renderNiche('repair');
+            }
+        } catch (err) {
+            console.error('Ошибка отрисовки ниши:', err);
+        }
+
+        const introProgress = document.getElementById('intro-progress');
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 if (introProgress) introProgress.style.width = '100%';
             });
         });
 
-        setTimeout(() => {
-            if (introSplash) introSplash.classList.add('intro-exit');
-            document.body.classList.add('app-ready');
-            setTimeout(() => {
-                if (introSplash && introSplash.parentNode) {
-                    introSplash.remove();
-                }
-            }, 800);
-        }, 950);
+        setTimeout(dismissIntroSplash, 950);
+        // Страховка на случай медленной загрузки или ошибок в скриптах: всегда снимаем заставку через 2.2 сек
+        setTimeout(dismissIntroSplash, 2200);
     </script>
 </body>
 </html>
