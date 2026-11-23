@@ -1,7 +1,34 @@
-<!-- ... existing code ... -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>izitap.kz — Калькулятор расчёта стоимости услуг</title>
+    <!-- Подключаем Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Шрифт Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #0A0B0E;
+            color: #FFFFFF;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
         /* Плавное свечение фона */
         .bg-glow {
-            background: radial-gradient(circle at 50% -10%, rgba(184, 245, 61, 0.14) 0%, rgba(10, 11, 14, 0) 58%);
+            background: radial-gradient(circle at 50% -10%, rgba(184, 245, 61, 0.16) 0%, rgba(10, 11, 14, 0) 60%);
         }
 
         /* Премиальная заставка входа с логотипом izitap.kz */
@@ -9,7 +36,7 @@
             position: fixed;
             inset: 0;
             z-index: 60;
-            background: radial-gradient(circle at 50% 42%, rgba(184, 245, 61, 0.16) 0%, #0A0B0E 70%);
+            background: radial-gradient(circle at 50% 42%, rgba(184, 245, 61, 0.18) 0%, #0A0B0E 72%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -103,7 +130,43 @@
         }
 
         /* Кастомный ползунок (range slider) под большой палец */
-<!-- ... existing code ... -->
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #222733;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #B8F53D;
+            border: 4px solid #0A0B0E;
+            box-shadow: 0 0 16px rgba(184, 245, 61, 0.55);
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.14);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #B8F53D;
+            border: 4px solid #0A0B0E;
+            box-shadow: 0 0 16px rgba(184, 245, 61, 0.55);
+            cursor: pointer;
+        }
+
         /* Анимация всплывающего уведомления */
         @keyframes toastSlide {
             0% { transform: translateY(20px); opacity: 0; }
@@ -267,13 +330,140 @@
 
     <!-- Фиксированная нижняя панель с итоговой суммой и отправкой в WhatsApp -->
     <footer class="stagger-item fixed bottom-0 inset-x-0 z-30 bg-[#0D0F14]/92 backdrop-blur-xl border-t border-white/10 px-4 pt-3 pb-4" style="transition-delay: 440ms;">
-<!-- ... existing code ... -->
-        // Форматирование числа в тенге (1 850 000 ₸)
+        <div class="max-w-[460px] mx-auto">
+            <div class="flex items-baseline justify-between mb-2.5">
+                <div>
+                    <span class="text-[11px] text-white/50 block">Предварительный расчёт</span>
+                    <span id="estimate-time" class="text-[11px] text-[#B8F53D] font-semibold">⏱ Срок: ~3 недели</span>
+                </div>
+                <div class="text-right">
+                    <span id="old-price" class="text-xs text-white/40 line-through mr-1.5"></span>
+                    <span id="total-price" class="text-2xl font-extrabold tracking-tight text-white">0 ₸</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" id="copy-btn" aria-label="Скопировать расчёт" class="px-3.5 py-3.5 rounded-2xl bg-[#161922] hover:bg-[#1E2330] border border-white/10 text-xs font-semibold text-white/85 active:scale-95 transition shrink-0">
+                    📋 Копия
+                </button>
+                <a id="whatsapp-link" href="#" target="_blank" rel="noopener noreferrer" class="flex-1 py-3.5 px-4 rounded-2xl bg-[#B8F53D] hover:bg-[#C6FF4D] text-[#0A0B0E] font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#B8F53D]/25 active:scale-[0.98] transition">
+                    <span>Отправить в WhatsApp</span>
+                    <span>→</span>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Тост-уведомление -->
+    <div id="toast" class="fixed bottom-28 inset-x-0 z-50 flex justify-center pointer-events-none px-4">
+        <div id="toast-box" class="opacity-0 px-4 py-2 rounded-2xl bg-[#1D222D] border border-[#B8F53D]/40 text-xs font-semibold text-white shadow-xl">
+            Расчёт скопирован в буфер обмена
+        </div>
+    </div>
+
+    <script>
+        const WHATSAPP_PHONE = '77753018680';
+
+        const NICHES = {
+            repair: {
+                badge: 'Студия ремонта «PRO Дом»',
+                title: 'Расчёт ремонта под ключ за 15 секунд',
+                icon: '🏠',
+                sliderLabel: 'Площадь помещения',
+                unit: 'м²',
+                min: 20,
+                max: 200,
+                step: 5,
+                defaultVal: 65,
+                midLabel: '110 м²',
+                tiersHeading: 'Уровень выполнения',
+                tiers: [
+                    { id: 'cosmetic', name: 'Косметик', subtitle: 'Освежить', ratePerUnit: 28000, baseFee: 0, daysPerUnit: 0.25 },
+                    { id: 'standard', name: 'Стандарт', subtitle: 'Под ключ', ratePerUnit: 45000, baseFee: 50000, daysPerUnit: 0.42 },
+                    { id: 'design', name: 'Дизайн', subtitle: 'Премиум', ratePerUnit: 72000, baseFee: 150000, daysPerUnit: 0.65 }
+                ],
+                addons: [
+                    { id: 'design-project', name: '3D-дизайн проект с чертежами', price: 140000, perUnit: false },
+                    { id: 'materials-delivery', name: 'Закуп и доставка черновых материалов', price: 3500, perUnit: true },
+                    { id: 'post-clean', name: 'Генеральная уборка после ремонта', price: 45000, perUnit: false }
+                ]
+            },
+            detailing: {
+                badge: 'Студия автодетейлинга «APEX»',
+                title: 'Расчёт защиты и детейлинга авто',
+                icon: '🚘',
+                sliderLabel: 'Площадь / уровень покрытия',
+                unit: 'слоёв',
+                min: 1,
+                max: 6,
+                step: 1,
+                defaultVal: 2,
+                midLabel: '3 слоя',
+                customLabels: ['1 слой', '3 слоя', '6 слоёв'],
+                tiersHeading: 'Пакет детейлинга',
+                tiers: [
+                    { id: 'polish', name: 'Полировка', subtitle: 'Блеск кузова', ratePerUnit: 25000, baseFee: 45000, daysPerUnit: 0.5 },
+                    { id: 'ceramic', name: 'Керамика', subtitle: 'Защита + гидрофоб', ratePerUnit: 38000, baseFee: 75000, daysPerUnit: 0.8 },
+                    { id: 'ppf-mix', name: 'Full VIP', subtitle: 'Кузов + салон', ratePerUnit: 55000, baseFee: 120000, daysPerUnit: 1.2 }
+                ],
+                addons: [
+                    { id: 'interior-clean', name: 'Глубокая химчистка салона с озонацией', price: 35000, perUnit: false },
+                    { id: 'glass-antidrain', name: 'Антидождь на все стёкла', price: 15000, perUnit: false },
+                    { id: 'engine-bay', name: 'Консервация подкапотного пространства', price: 18000, perUnit: false }
+                ]
+            },
+            cleaning: {
+                badge: 'Сервис чистоты «FreshSpace»',
+                title: 'Онлайн-расчёт уборки квартиры или офиса',
+                icon: '✨',
+                sliderLabel: 'Площадь уборки',
+                unit: 'м²',
+                min: 25,
+                max: 250,
+                step: 5,
+                defaultVal: 70,
+                midLabel: '135 м²',
+                tiersHeading: 'Формат уборки',
+                tiers: [
+                    { id: 'supporting', name: 'Поддержка', subtitle: 'Еженедельно', ratePerUnit: 450, baseFee: 5000, daysPerUnit: 0.03 },
+                    { id: 'general', name: 'Генеральная', subtitle: 'Все зоны', ratePerUnit: 750, baseFee: 8000, daysPerUnit: 0.05 },
+                    { id: 'after-repair', name: 'После стройки', subtitle: 'Пыль и краска', ratePerUnit: 1100, baseFee: 12000, daysPerUnit: 0.07 }
+                ],
+                addons: [
+                    { id: 'windows', name: 'Мойка окон и витражей с двух сторон', price: 15000, perUnit: false },
+                    { id: 'sofa-steam', name: 'Паровая чистка дивана и матрасов', price: 18000, perUnit: false },
+                    { id: 'eco-chem', name: 'Гипоаллергенная ЭКО-химия', price: 120, perUnit: true }
+                ]
+            }
+        };
+
+        let currentNicheKey = 'repair';
+        let currentTierId = 'standard';
+        let selectedAddons = new Set();
+        let sliderValue = 65;
+        let lastWhatsappMessage = '';
+
+        const mainSlider = document.getElementById('main-slider');
+        const sliderValEl = document.getElementById('slider-val');
+        const sliderUnitEl = document.getElementById('slider-unit');
+        const sliderLabelEl = document.getElementById('slider-label');
+        const sliderMinLabel = document.getElementById('slider-min-label');
+        const sliderMidLabel = document.getElementById('slider-mid-label');
+        const sliderMaxLabel = document.getElementById('slider-max-label');
+        const tiersContainer = document.getElementById('tiers-container');
+        const addonsContainer = document.getElementById('addons-container');
+        const totalPriceEl = document.getElementById('total-price');
+        const oldPriceEl = document.getElementById('old-price');
+        const estimateTimeEl = document.getElementById('estimate-time');
+        const whatsappLinkEl = document.getElementById('whatsapp-link');
+        const discountToggle = document.getElementById('discount-toggle');
+        const copyBtn = document.getElementById('copy-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
         function formatTenge(num) {
             return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₸';
         }
 
-        // Обновление визуального заполнения трека ползунка
         function updateSliderTrackFill() {
             const min = parseFloat(mainSlider.min) || 0;
             const max = parseFloat(mainSlider.max) || 100;
@@ -282,15 +472,142 @@
             mainSlider.style.background = `linear-gradient(90deg, #B8F53D 0%, #9BE01C ${pct}%, #222733 ${pct}%, #222733 100%)`;
         }
 
-        // Показ всплывающего тоста
-<!-- ... existing code ... -->
+        function showToast(text) {
+            const box = document.getElementById('toast-box');
+            box.textContent = text;
+            box.classList.remove('toast-active');
+            void box.offsetWidth;
+            box.classList.add('toast-active');
+        }
+
+        function renderNiche(nicheKey) {
+            currentNicheKey = nicheKey;
+            const cfg = NICHES[nicheKey];
+            selectedAddons.clear();
+
+            document.querySelectorAll('.niche-tab').forEach(tab => {
+                const isActive = tab.dataset.niche === nicheKey;
+                tab.classList.toggle('active', isActive);
+                tab.classList.toggle('bg-[#B8F53D]', isActive);
+                tab.classList.toggle('text-[#0A0B0E]', isActive);
+                tab.classList.toggle('font-bold', isActive);
+                tab.classList.toggle('text-white/70', !isActive);
+                tab.classList.toggle('font-semibold', !isActive);
+            });
+
+            document.getElementById('niche-badge').textContent = cfg.badge;
+            document.getElementById('niche-title').textContent = cfg.title;
+            document.getElementById('niche-icon').textContent = cfg.icon;
+            sliderLabelEl.textContent = cfg.sliderLabel;
+            sliderUnitEl.textContent = cfg.unit;
+            document.getElementById('tiers-heading').textContent = cfg.tiersHeading;
+
+            mainSlider.min = cfg.min;
+            mainSlider.max = cfg.max;
+            mainSlider.step = cfg.step;
             sliderValue = cfg.defaultVal;
             mainSlider.value = sliderValue;
             updateSliderTrackFill();
 
             if (cfg.customLabels) {
-<!-- ... existing code ... -->
-            // Обновляем UI суммы с мягким импульсом обновления
+                sliderMinLabel.textContent = cfg.customLabels[0];
+                sliderMidLabel.textContent = cfg.customLabels[1];
+                sliderMaxLabel.textContent = cfg.customLabels[2];
+            } else {
+                sliderMinLabel.textContent = `${cfg.min} ${cfg.unit}`;
+                sliderMidLabel.textContent = cfg.midLabel;
+                sliderMaxLabel.textContent = `${cfg.max} ${cfg.unit}`;
+            }
+
+            currentTierId = cfg.tiers[1] ? cfg.tiers[1].id : cfg.tiers[0].id;
+            tiersContainer.innerHTML = cfg.tiers.map(tier => {
+                const active = tier.id === currentTierId;
+                return `
+                    <button type="button" data-tier="${tier.id}" class="tier-btn p-2.5 rounded-2xl text-left border transition-all ${
+                        active
+                            ? 'bg-[#B8F53D]/15 border-[#B8F53D] text-white'
+                            : 'bg-[#11141B] border-white/10 text-white/75 hover:border-white/25'
+                    }">
+                        <div class="text-xs font-extrabold">${tier.name}</div>
+                        <div class="text-[10px] text-white/50 mt-0.5">${tier.subtitle}</div>
+                    </button>
+                `;
+            }).join('');
+
+            tiersContainer.querySelectorAll('.tier-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentTierId = btn.dataset.tier;
+                    tiersContainer.querySelectorAll('.tier-btn').forEach(b => {
+                        const isSel = b.dataset.tier === currentTierId;
+                        b.className = `tier-btn p-2.5 rounded-2xl text-left border transition-all ${
+                            isSel
+                                ? 'bg-[#B8F53D]/15 border-[#B8F53D] text-white'
+                                : 'bg-[#11141B] border-white/10 text-white/75 hover:border-white/25'
+                        }`;
+                    });
+                    recalculate();
+                });
+            });
+
+            addonsContainer.innerHTML = cfg.addons.map(addon => {
+                const priceLabel = addon.perUnit
+                    ? `+${formatTenge(addon.price)} / ${cfg.unit}`
+                    : `+${formatTenge(addon.price)}`;
+                return `
+                    <button type="button" data-addon="${addon.id}" class="addon-btn w-full p-3 rounded-2xl bg-[#11141B] border border-white/10 flex items-center justify-between gap-2 text-left transition-all active:scale-[0.99]">
+                        <div class="flex items-center gap-2.5">
+                            <span class="addon-check w-5 h-5 rounded-lg border border-white/25 flex items-center justify-center text-[11px] font-extrabold text-[#0A0B0E] transition-colors"></span>
+                            <span class="text-xs font-medium text-white/90">${addon.name}</span>
+                        </div>
+                        <span class="text-[11px] font-bold text-[#B8F53D] shrink-0">${priceLabel}</span>
+                    </button>
+                `;
+            }).join('');
+
+            addonsContainer.querySelectorAll('.addon-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.addon;
+                    const checkEl = btn.querySelector('.addon-check');
+                    if (selectedAddons.has(id)) {
+                        selectedAddons.delete(id);
+                        btn.classList.remove('border-[#B8F53D]/70', 'bg-[#B8F53D]/10');
+                        checkEl.classList.remove('bg-[#B8F53D]', 'border-[#B8F53D]');
+                        checkEl.textContent = '';
+                    } else {
+                        selectedAddons.add(id);
+                        btn.classList.add('border-[#B8F53D]/70', 'bg-[#B8F53D]/10');
+                        checkEl.classList.add('bg-[#B8F53D]', 'border-[#B8F53D]');
+                        checkEl.textContent = '✓';
+                    }
+                    recalculate();
+                });
+            });
+
+            recalculate();
+        }
+
+        function recalculate() {
+            const cfg = NICHES[currentNicheKey];
+            const tier = cfg.tiers.find(t => t.id === currentTierId) || cfg.tiers[0];
+
+            sliderValEl.textContent = sliderValue;
+
+            let rawTotal = tier.baseFee + (sliderValue * tier.ratePerUnit);
+            const chosenAddonNames = [];
+
+            cfg.addons.forEach(addon => {
+                if (selectedAddons.has(addon.id)) {
+                    rawTotal += addon.perUnit ? addon.price * sliderValue : addon.price;
+                    chosenAddonNames.push(addon.name);
+                }
+            });
+
+            const hasDiscount = discountToggle.checked;
+            const finalTotal = hasDiscount ? rawTotal * 0.9 : rawTotal;
+
+            const rawDays = Math.max(1, Math.round(sliderValue * tier.daysPerUnit));
+            const durationText = rawDays === 1 ? '1 день' : (rawDays < 5 ? `${rawDays} дня` : `${rawDays} дней`);
+
             const formattedNewTotal = formatTenge(finalTotal);
             if (totalPriceEl.textContent.trim() !== formattedNewTotal) {
                 totalPriceEl.textContent = formattedNewTotal;
@@ -298,6 +615,7 @@
                 void totalPriceEl.offsetWidth;
                 totalPriceEl.classList.add('price-updated');
             }
+
             if (hasDiscount) {
                 oldPriceEl.textContent = formatTenge(rawTotal);
                 oldPriceEl.classList.remove('hidden');
@@ -307,8 +625,23 @@
             estimateTimeEl.textContent = `⏱ Срок: ${durationText}`;
             updateSliderTrackFill();
 
-            // Формируем аккуратное сообщение для WhatsApp
-<!-- ... existing code ... -->
+            const lines = [
+                `Здравствуйте! Хочу зафиксировать расчёт (${cfg.badge}):`,
+                `• ${cfg.sliderLabel}: ${sliderValue} ${cfg.unit}`,
+                `• Тариф: ${tier.name} (${tier.subtitle})`,
+                chosenAddonNames.length ? `• Доп. опции: ${chosenAddonNames.join(', ')}` : `• Доп. опции: нет`,
+                `• Ориентировочный срок: ${durationText}`,
+                hasDiscount ? `• Скидка −10% применена` : `• Без скидки`,
+                `💰 Итого: ${formatTenge(finalTotal)}`
+            ];
+            lastWhatsappMessage = lines.join('\n');
+            whatsappLinkEl.href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(lastWhatsappMessage)}`;
+        }
+
+        document.querySelectorAll('.niche-tab').forEach(tab => {
+            tab.addEventListener('click', () => renderNiche(tab.dataset.niche));
+        });
+
         mainSlider.addEventListener('input', (e) => {
             sliderValue = parseInt(e.target.value, 10);
             updateSliderTrackFill();
@@ -316,11 +649,31 @@
         });
 
         discountToggle.addEventListener('change', recalculate);
-<!-- ... existing code ... -->
+
+        resetBtn.addEventListener('click', () => {
+            discountToggle.checked = true;
+            renderNiche(currentNicheKey);
+            showToast('Параметры сброшены');
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!lastWhatsappMessage) return;
+            const tempArea = document.createElement('textarea');
+            tempArea.value = lastWhatsappMessage;
+            tempArea.setAttribute('readonly', '');
+            tempArea.style.position = 'absolute';
+            tempArea.style.left = '-9999px';
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Расчёт скопирован в буфер обмена');
+            } catch (e) {
+                showToast('Не удалось скопировать');
+            }
             document.body.removeChild(tempArea);
         });
 
-        // Безопасный запуск анимации входа с логотипом izitap.kz и гарантированное открытие интерфейса
         function dismissIntroSplash() {
             const splash = document.getElementById('intro-splash');
             document.body.classList.add('app-ready');
@@ -335,9 +688,7 @@
         }
 
         try {
-            if (typeof renderNiche === 'function') {
-                renderNiche('repair');
-            }
+            renderNiche('repair');
         } catch (err) {
             console.error('Ошибка отрисовки ниши:', err);
         }
@@ -350,7 +701,6 @@
         });
 
         setTimeout(dismissIntroSplash, 950);
-        // Страховка на случай медленной загрузки или ошибок в скриптах: всегда снимаем заставку через 2.2 сек
         setTimeout(dismissIntroSplash, 2200);
     </script>
 </body>
