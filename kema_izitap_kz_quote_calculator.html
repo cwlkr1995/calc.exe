@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>izitap.kz — Калькулятор расчёта стоимости услуг</title>
+    <!-- Подключаем Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Шрифт Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #0A0B0E;
+            color: #FFFFFF;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Плавное свечение фона */
+        .bg-glow {
+            background: radial-gradient(circle at 50% -10%, rgba(184, 245, 61, 0.16) 0%, rgba(10, 11, 14, 0) 60%);
+        }
+
+        /* Премиальная заставка входа с логотипом izitap.kz */
+        #intro-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: radial-gradient(circle at 50% 42%, rgba(184, 245, 61, 0.18) 0%, #0A0B0E 72%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1), transform 0.75s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.75s;
+        }
+
+        #intro-splash.intro-exit {
+            opacity: 0;
+            transform: scale(1.05);
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        @keyframes logoPulseRing {
+            0% { transform: scale(0.85); opacity: 0.75; }
+            70% { transform: scale(1.42); opacity: 0; }
+            100% { transform: scale(1.42); opacity: 0; }
+        }
+
+        .intro-ring {
+            position: absolute;
+            width: 84px;
+            height: 84px;
+            border-radius: 28px;
+            border: 1.5px solid rgba(184, 245, 61, 0.55);
+            animation: logoPulseRing 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        }
+
+        @keyframes introLogoPop {
+            0% { opacity: 0; transform: translateY(18px) scale(0.84); }
+            65% { opacity: 1; transform: translateY(-3px) scale(1.03); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .intro-logo-anim {
+            animation: introLogoPop 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes shimmerLine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(220%); }
+        }
+
+        .intro-bar-fill {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intro-bar-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            width: 45%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+            animation: shimmerLine 1.1s ease-in-out infinite;
+        }
+
+        /* Каскадное появление элементов интерфейса после заставки */
+        .stagger-item {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        body.app-ready .stagger-item {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Стеклянные карточки премиум-уровня */
+        .premium-card {
+            background: linear-gradient(165deg, rgba(24, 28, 36, 0.92) 0%, rgba(15, 18, 24, 0.95) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .premium-card:hover {
+            border-color: rgba(184, 245, 61, 0.22);
+        }
+
+        /* Плавная пульсация цифры при пересчёте суммы */
+        @keyframes pricePop {
+            0% { transform: scale(0.96); color: #B8F53D; }
+            100% { transform: scale(1); color: #FFFFFF; }
+        }
+
+        .price-updated {
+            animation: pricePop 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Кастомный ползунок (range slider) под большой палец */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #222733;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #B8F53D;
+            border: 4px solid #0A0B0E;
+            box-shadow: 0 0 16px rgba(184, 245, 61, 0.55);
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.14);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #B8F53D;
+            border: 4px solid #0A0B0E;
+            box-shadow: 0 0 16px rgba(184, 245, 61, 0.55);
+            cursor: pointer;
+        }
+
+        /* Анимация всплывающего уведомления */
+        @keyframes toastSlide {
+            0% { transform: translateY(20px); opacity: 0; }
+            15% { transform: translateY(0); opacity: 1; }
+            85% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(12px); opacity: 0; }
+        }
+        .toast-active {
+            animation: toastSlide 2.6s ease forwards;
+        }
+    </style>
+</head>
+<body class="bg-glow min-h-screen flex flex-col justify-between pb-36">
+
+    <!-- Анимация входа с логотипом izitap.kz -->
+    <div id="intro-splash" aria-hidden="true">
+        <div class="relative flex flex-col items-center intro-logo-anim">
+            <div class="intro-ring"></div>
+            <div class="w-20 h-20 rounded-[26px] bg-gradient-to-br from-[#C8FF57] to-[#9BE01C] text-[#0A0B0E] flex items-center justify-center shadow-2xl shadow-[#B8F53D]/30 relative z-10">
+                <!-- Фирменный геометрический знак izitap.kz -->
+                <svg width="42" height="42" viewBox="0 0 48 48" fill="none">
+                    <circle cx="14" cy="13" r="3.5" fill="#0A0B0E"/>
+                    <rect x="11" y="19.5" width="6" height="17.5" rx="3" fill="#0A0B0E"/>
+                    <path d="M22.5 20.5H36.5L23.5 35.5H37" stroke="#0A0B0E" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
+            <div class="mt-4 text-center">
+                <div class="text-2xl font-extrabold tracking-tight text-white">
+                    izitap<span class="text-[#B8F53D]">.kz</span>
+                </div>
+                <p class="text-[11px] uppercase tracking-[0.24em] text-white/55 font-semibold mt-1">
+                    Smart Quote Engine
+                </p>
+            </div>
+
+            <!-- Тонкая анимированная полоса загрузки -->
+            <div class="w-36 h-1 rounded-full bg-white/10 mt-5 overflow-hidden">
+                <div id="intro-progress" class="intro-bar-fill h-full w-0 bg-[#B8F53D] rounded-full transition-all duration-700 ease-out"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной контейнер mobile-first -->
+    <main class="w-full max-w-[460px] mx-auto px-4 pt-4">
+
+        <!-- Шапка демо-сервиса izitap.kz -->
+        <header class="stagger-item flex items-center justify-between mb-4" style="transition-delay: 40ms;">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#C8FF57] to-[#9BE01C] text-[#0A0B0E] font-extrabold text-sm flex items-center justify-center shadow-lg shadow-[#B8F53D]/25">
+                    <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+                        <circle cx="14" cy="13" r="3.8" fill="#0A0B0E"/>
+                        <rect x="11" y="19.5" width="6" height="17.5" rx="3" fill="#0A0B0E"/>
+                        <path d="M22.5 20.5H36.5L23.5 35.5H37" stroke="#0A0B0E" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-bold text-sm tracking-tight text-white">izitap<span class="text-[#B8F53D]">.kz</span></span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#B8F53D]/15 border border-[#B8F53D]/30 text-[#B8F53D] font-semibold">PRO DEMO</span>
+                    </div>
+                    <p class="text-[11px] text-white/50">Мобильный калькулятор заявок</p>
+                </div>
+            </div>
+
+            <button type="button" id="reset-btn" class="px-3 py-2 rounded-2xl premium-card text-xs font-medium text-white/75 hover:text-white active:scale-95 transition">
+                Сброс
+            </button>
+        </header>
+
+        <!-- Переключатель ниш (для демонстрации клиентам из разных сфер) -->
+        <section class="stagger-item mb-4" style="transition-delay: 110ms;">
+            <p class="text-[11px] uppercase tracking-wider text-white/45 font-semibold mb-2 px-1">
+                Выберите сферу бизнеса:
+            </p>
+            <div class="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl premium-card" id="niche-tabs">
+                <button type="button" data-niche="repair" class="niche-tab active py-2.5 px-2 rounded-xl text-xs font-bold bg-[#B8F53D] text-[#0A0B0E] transition-all">
+                    🛠 Ремонт
+                </button>
+                <button type="button" data-niche="detailing" class="niche-tab py-2.5 px-2 rounded-xl text-xs font-semibold text-white/70 hover:text-white transition-all">
+                    🚘 Детейлинг
+                </button>
+                <button type="button" data-niche="cleaning" class="niche-tab py-2.5 px-2 rounded-xl text-xs font-semibold text-white/70 hover:text-white transition-all">
+                    ✨ Клининг
+                </button>
+            </div>
+        </section>
+
+        <!-- Заголовок выбранной ниши -->
+        <section class="stagger-item rounded-3xl premium-card p-4 mb-3.5" style="transition-delay: 180ms;">
+            <div class="flex items-start justify-between gap-2 mb-3">
+                <div>
+                    <span id="niche-badge" class="inline-block text-[10px] uppercase tracking-widest text-[#B8F53D] font-bold mb-1">
+                        Студия ремонта «PRO Дом»
+                    </span>
+                    <h1 id="niche-title" class="text-lg font-extrabold text-white leading-snug">
+                        Расчёт ремонта под ключ за 15 секунд
+                    </h1>
+                </div>
+                <span id="niche-icon" class="text-2xl w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0">🏠</span>
+            </div>
+
+            <!-- Блок 1: Ползунок объёма / площади / класса с динамической шкалой заполнения -->
+            <div class="pt-3 border-t border-white/10">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span id="slider-label" class="text-xs font-medium text-white/75">Площадь помещения</span>
+                    <span class="px-3 py-1 rounded-xl bg-[#0A0B0E] border border-[#B8F53D]/40 text-sm font-extrabold text-[#B8F53D] shadow-inner">
+                        <span id="slider-val">65</span> <span id="slider-unit">м²</span>
+                    </span>
+                </div>
+
+                <input type="range" id="main-slider" min="20" max="200" step="5" value="65">
+
+                <div class="flex justify-between text-[10px] text-white/40 mt-2 font-medium">
+                    <span id="slider-min-label">20 м²</span>
+                    <span id="slider-mid-label">110 м²</span>
+                    <span id="slider-max-label">200 м²</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Блок 2: Выбор тарифа / пакета услуги -->
+        <section class="stagger-item rounded-3xl premium-card p-4 mb-3.5" style="transition-delay: 250ms;">
+            <h2 id="tiers-heading" class="text-xs uppercase tracking-wider text-white/50 font-bold mb-2.5">
+                Уровень выполнения
+            </h2>
+            <div class="grid grid-cols-3 gap-2" id="tiers-container">
+                <!-- Генерируется динамически из JS -->
+            </div>
+        </section>
+
+        <!-- Блок 3: Дополнительные опции (чекбоксы под палец) -->
+        <section class="stagger-item rounded-3xl premium-card p-4 mb-3.5" style="transition-delay: 320ms;">
+            <div class="flex items-center justify-between mb-2.5">
+                <h2 class="text-xs uppercase tracking-wider text-white/50 font-bold">
+                    Дополнительные опции
+                </h2>
+                <span class="text-[10px] text-white/40">можно выбрать несколько</span>
+            </div>
+            <div class="space-y-2" id="addons-container">
+                <!-- Генерируется динамически из JS -->
+            </div>
+        </section>
+
+        <!-- Блок 4: Бонус-переключатель «Скидка 10% за заявку сегодня» -->
+        <section class="stagger-item rounded-3xl bg-gradient-to-r from-[#1A2216] via-[#151A16] to-[#13161C] border border-[#B8F53D]/30 p-3.5 mb-4 flex items-center justify-between gap-3 shadow-lg shadow-[#B8F53D]/5" style="transition-delay: 390ms;">
+            <div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-white">Зафиксировать скидку −10%</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-[#B8F53D] text-[#0A0B0E] font-extrabold">АКЦИЯ</span>
+                </div>
+                <p class="text-[11px] text-white/60 mt-0.5">При отправке расчёта менеджеру сегодня</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                <input type="checkbox" id="discount-toggle" class="sr-only peer" checked>
+                <div class="w-12 h-7 bg-[#222733] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white peer-checked:after:bg-[#0A0B0E] after:rounded-full after:h-[22px] after:w-[22px] after:transition-all peer-checked:bg-[#B8F53D]"></div>
+            </label>
+        </section>
+
+    </main>
+
+    <!-- Фиксированная нижняя панель с итоговой суммой и отправкой в WhatsApp -->
+    <footer class="stagger-item fixed bottom-0 inset-x-0 z-30 bg-[#0D0F14]/92 backdrop-blur-xl border-t border-white/10 px-4 pt-3 pb-4" style="transition-delay: 440ms;">
+        <div class="max-w-[460px] mx-auto">
+            <div class="flex items-baseline justify-between mb-2.5">
+                <div>
+                    <span class="text-[11px] text-white/50 block">Предварительный расчёт</span>
+                    <span id="estimate-time" class="text-[11px] text-[#B8F53D] font-semibold">⏱ Срок: ~3 недели</span>
+                </div>
+                <div class="text-right">
+                    <span id="old-price" class="text-xs text-white/40 line-through mr-1.5"></span>
+                    <span id="total-price" class="text-2xl font-extrabold tracking-tight text-white">0 ₸</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" id="copy-btn" aria-label="Скопировать расчёт" class="px-3.5 py-3.5 rounded-2xl bg-[#161922] hover:bg-[#1E2330] border border-white/10 text-xs font-semibold text-white/85 active:scale-95 transition shrink-0">
+                    📋 Копия
+                </button>
+                <a id="whatsapp-link" href="#" target="_blank" rel="noopener noreferrer" class="flex-1 py-3.5 px-4 rounded-2xl bg-[#B8F53D] hover:bg-[#C6FF4D] text-[#0A0B0E] font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#B8F53D]/25 active:scale-[0.98] transition">
+                    <span>Отправить в WhatsApp</span>
+                    <span>→</span>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Тост-уведомление -->
+    <div id="toast" class="fixed bottom-28 inset-x-0 z-50 flex justify-center pointer-events-none px-4">
+        <div id="toast-box" class="opacity-0 px-4 py-2 rounded-2xl bg-[#1D222D] border border-[#B8F53D]/40 text-xs font-semibold text-white shadow-xl">
+            Расчёт скопирован в буфер обмена
+        </div>
+    </div>
+
+    <script>
+        const WHATSAPP_PHONE = '77753018680';
+
+        const NICHES = {
+            repair: {
+                badge: 'Студия ремонта «PRO Дом»',
+                title: 'Расчёт ремонта под ключ за 15 секунд',
+                icon: '🏠',
+                sliderLabel: 'Площадь помещения',
+                unit: 'м²',
+                min: 20,
+                max: 200,
+                step: 5,
+                defaultVal: 65,
+                midLabel: '110 м²',
+                tiersHeading: 'Уровень выполнения',
+                tiers: [
+                    { id: 'cosmetic', name: 'Косметик', subtitle: 'Освежить', ratePerUnit: 28000, baseFee: 0, daysPerUnit: 0.25 },
+                    { id: 'standard', name: 'Стандарт', subtitle: 'Под ключ', ratePerUnit: 45000, baseFee: 50000, daysPerUnit: 0.42 },
+                    { id: 'design', name: 'Дизайн', subtitle: 'Премиум', ratePerUnit: 72000, baseFee: 150000, daysPerUnit: 0.65 }
+                ],
+                addons: [
+                    { id: 'design-project', name: '3D-дизайн проект с чертежами', price: 140000, perUnit: false },
+                    { id: 'materials-delivery', name: 'Закуп и доставка черновых материалов', price: 3500, perUnit: true },
+                    { id: 'post-clean', name: 'Генеральная уборка после ремонта', price: 45000, perUnit: false }
+                ]
+            },
+            detailing: {
+                badge: 'Студия автодетейлинга «APEX»',
+                title: 'Расчёт защиты и детейлинга авто',
+                icon: '🚘',
+                sliderLabel: 'Площадь / уровень покрытия',
+                unit: 'слоёв',
+                min: 1,
+                max: 6,
+                step: 1,
+                defaultVal: 2,
+                midLabel: '3 слоя',
+                customLabels: ['1 слой', '3 слоя', '6 слоёв'],
+                tiersHeading: 'Пакет детейлинга',
+                tiers: [
+                    { id: 'polish', name: 'Полировка', subtitle: 'Блеск кузова', ratePerUnit: 25000, baseFee: 45000, daysPerUnit: 0.5 },
+                    { id: 'ceramic', name: 'Керамика', subtitle: 'Защита + гидрофоб', ratePerUnit: 38000, baseFee: 75000, daysPerUnit: 0.8 },
+                    { id: 'ppf-mix', name: 'Full VIP', subtitle: 'Кузов + салон', ratePerUnit: 55000, baseFee: 120000, daysPerUnit: 1.2 }
+                ],
+                addons: [
+                    { id: 'interior-clean', name: 'Глубокая химчистка салона с озонацией', price: 35000, perUnit: false },
+                    { id: 'glass-antidrain', name: 'Антидождь на все стёкла', price: 15000, perUnit: false },
+                    { id: 'engine-bay', name: 'Консервация подкапотного пространства', price: 18000, perUnit: false }
+                ]
+            },
+            cleaning: {
+                badge: 'Сервис чистоты «FreshSpace»',
+                title: 'Онлайн-расчёт уборки квартиры или офиса',
+                icon: '✨',
+                sliderLabel: 'Площадь уборки',
+                unit: 'м²',
+                min: 25,
+                max: 250,
+                step: 5,
+                defaultVal: 70,
+                midLabel: '135 м²',
+                tiersHeading: 'Формат уборки',
+                tiers: [
+                    { id: 'supporting', name: 'Поддержка', subtitle: 'Еженедельно', ratePerUnit: 450, baseFee: 5000, daysPerUnit: 0.03 },
+                    { id: 'general', name: 'Генеральная', subtitle: 'Все зоны', ratePerUnit: 750, baseFee: 8000, daysPerUnit: 0.05 },
+                    { id: 'after-repair', name: 'После стройки', subtitle: 'Пыль и краска', ratePerUnit: 1100, baseFee: 12000, daysPerUnit: 0.07 }
+                ],
+                addons: [
+                    { id: 'windows', name: 'Мойка окон и витражей с двух сторон', price: 15000, perUnit: false },
+                    { id: 'sofa-steam', name: 'Паровая чистка дивана и матрасов', price: 18000, perUnit: false },
+                    { id: 'eco-chem', name: 'Гипоаллергенная ЭКО-химия', price: 120, perUnit: true }
+                ]
+            }
+        };
+
+        let currentNicheKey = 'repair';
+        let currentTierId = 'standard';
+        let selectedAddons = new Set();
+        let sliderValue = 65;
+        let lastWhatsappMessage = '';
+
+        const mainSlider = document.getElementById('main-slider');
+        const sliderValEl = document.getElementById('slider-val');
+        const sliderUnitEl = document.getElementById('slider-unit');
+        const sliderLabelEl = document.getElementById('slider-label');
+        const sliderMinLabel = document.getElementById('slider-min-label');
+        const sliderMidLabel = document.getElementById('slider-mid-label');
+        const sliderMaxLabel = document.getElementById('slider-max-label');
+        const tiersContainer = document.getElementById('tiers-container');
+        const addonsContainer = document.getElementById('addons-container');
+        const totalPriceEl = document.getElementById('total-price');
+        const oldPriceEl = document.getElementById('old-price');
+        const estimateTimeEl = document.getElementById('estimate-time');
+        const whatsappLinkEl = document.getElementById('whatsapp-link');
+        const discountToggle = document.getElementById('discount-toggle');
+        const copyBtn = document.getElementById('copy-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        function formatTenge(num) {
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₸';
+        }
+
+        function updateSliderTrackFill() {
+            const min = parseFloat(mainSlider.min) || 0;
+            const max = parseFloat(mainSlider.max) || 100;
+            const val = parseFloat(mainSlider.value) || 0;
+            const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+            mainSlider.style.background = `linear-gradient(90deg, #B8F53D 0%, #9BE01C ${pct}%, #222733 ${pct}%, #222733 100%)`;
+        }
+
+        function showToast(text) {
+            const box = document.getElementById('toast-box');
+            box.textContent = text;
+            box.classList.remove('toast-active');
+            void box.offsetWidth;
+            box.classList.add('toast-active');
+        }
+
+        function renderNiche(nicheKey) {
+            currentNicheKey = nicheKey;
+            const cfg = NICHES[nicheKey];
+            selectedAddons.clear();
+
+            document.querySelectorAll('.niche-tab').forEach(tab => {
+                const isActive = tab.dataset.niche === nicheKey;
+                tab.classList.toggle('active', isActive);
+                tab.classList.toggle('bg-[#B8F53D]', isActive);
+                tab.classList.toggle('text-[#0A0B0E]', isActive);
+                tab.classList.toggle('font-bold', isActive);
+                tab.classList.toggle('text-white/70', !isActive);
+                tab.classList.toggle('font-semibold', !isActive);
+            });
+
+            document.getElementById('niche-badge').textContent = cfg.badge;
+            document.getElementById('niche-title').textContent = cfg.title;
+            document.getElementById('niche-icon').textContent = cfg.icon;
+            sliderLabelEl.textContent = cfg.sliderLabel;
+            sliderUnitEl.textContent = cfg.unit;
+            document.getElementById('tiers-heading').textContent = cfg.tiersHeading;
+
+            mainSlider.min = cfg.min;
+            mainSlider.max = cfg.max;
+            mainSlider.step = cfg.step;
+            sliderValue = cfg.defaultVal;
+            mainSlider.value = sliderValue;
+            updateSliderTrackFill();
+
+            if (cfg.customLabels) {
+                sliderMinLabel.textContent = cfg.customLabels[0];
+                sliderMidLabel.textContent = cfg.customLabels[1];
+                sliderMaxLabel.textContent = cfg.customLabels[2];
+            } else {
+                sliderMinLabel.textContent = `${cfg.min} ${cfg.unit}`;
+                sliderMidLabel.textContent = cfg.midLabel;
+                sliderMaxLabel.textContent = `${cfg.max} ${cfg.unit}`;
+            }
+
+            currentTierId = cfg.tiers[1] ? cfg.tiers[1].id : cfg.tiers[0].id;
+            tiersContainer.innerHTML = cfg.tiers.map(tier => {
+                const active = tier.id === currentTierId;
+                return `
+                    <button type="button" data-tier="${tier.id}" class="tier-btn p-2.5 rounded-2xl text-left border transition-all ${
+                        active
+                            ? 'bg-[#B8F53D]/15 border-[#B8F53D] text-white'
+                            : 'bg-[#11141B] border-white/10 text-white/75 hover:border-white/25'
+                    }">
+                        <div class="text-xs font-extrabold">${tier.name}</div>
+                        <div class="text-[10px] text-white/50 mt-0.5">${tier.subtitle}</div>
+                    </button>
+                `;
+            }).join('');
+
+            tiersContainer.querySelectorAll('.tier-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentTierId = btn.dataset.tier;
+                    tiersContainer.querySelectorAll('.tier-btn').forEach(b => {
+                        const isSel = b.dataset.tier === currentTierId;
+                        b.className = `tier-btn p-2.5 rounded-2xl text-left border transition-all ${
+                            isSel
+                                ? 'bg-[#B8F53D]/15 border-[#B8F53D] text-white'
+                                : 'bg-[#11141B] border-white/10 text-white/75 hover:border-white/25'
+                        }`;
+                    });
+                    recalculate();
+                });
+            });
+
+            addonsContainer.innerHTML = cfg.addons.map(addon => {
+                const priceLabel = addon.perUnit
+                    ? `+${formatTenge(addon.price)} / ${cfg.unit}`
+                    : `+${formatTenge(addon.price)}`;
+                return `
+                    <button type="button" data-addon="${addon.id}" class="addon-btn w-full p-3 rounded-2xl bg-[#11141B] border border-white/10 flex items-center justify-between gap-2 text-left transition-all active:scale-[0.99]">
+                        <div class="flex items-center gap-2.5">
+                            <span class="addon-check w-5 h-5 rounded-lg border border-white/25 flex items-center justify-center text-[11px] font-extrabold text-[#0A0B0E] transition-colors"></span>
+                            <span class="text-xs font-medium text-white/90">${addon.name}</span>
+                        </div>
+                        <span class="text-[11px] font-bold text-[#B8F53D] shrink-0">${priceLabel}</span>
+                    </button>
+                `;
+            }).join('');
+
+            addonsContainer.querySelectorAll('.addon-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.addon;
+                    const checkEl = btn.querySelector('.addon-check');
+                    if (selectedAddons.has(id)) {
+                        selectedAddons.delete(id);
+                        btn.classList.remove('border-[#B8F53D]/70', 'bg-[#B8F53D]/10');
+                        checkEl.classList.remove('bg-[#B8F53D]', 'border-[#B8F53D]');
+                        checkEl.textContent = '';
+                    } else {
+                        selectedAddons.add(id);
+                        btn.classList.add('border-[#B8F53D]/70', 'bg-[#B8F53D]/10');
+                        checkEl.classList.add('bg-[#B8F53D]', 'border-[#B8F53D]');
+                        checkEl.textContent = '✓';
+                    }
+                    recalculate();
+                });
+            });
+
+            recalculate();
+        }
+
+        function recalculate() {
+            const cfg = NICHES[currentNicheKey];
+            const tier = cfg.tiers.find(t => t.id === currentTierId) || cfg.tiers[0];
+
+            sliderValEl.textContent = sliderValue;
+
+            let rawTotal = tier.baseFee + (sliderValue * tier.ratePerUnit);
+            const chosenAddonNames = [];
+
+            cfg.addons.forEach(addon => {
+                if (selectedAddons.has(addon.id)) {
+                    rawTotal += addon.perUnit ? addon.price * sliderValue : addon.price;
+                    chosenAddonNames.push(addon.name);
+                }
+            });
+
+            const hasDiscount = discountToggle.checked;
+            const finalTotal = hasDiscount ? rawTotal * 0.9 : rawTotal;
+
+            const rawDays = Math.max(1, Math.round(sliderValue * tier.daysPerUnit));
+            const durationText = rawDays === 1 ? '1 день' : (rawDays < 5 ? `${rawDays} дня` : `${rawDays} дней`);
+
+            const formattedNewTotal = formatTenge(finalTotal);
+            if (totalPriceEl.textContent.trim() !== formattedNewTotal) {
+                totalPriceEl.textContent = formattedNewTotal;
+                totalPriceEl.classList.remove('price-updated');
+                void totalPriceEl.offsetWidth;
+                totalPriceEl.classList.add('price-updated');
+            }
+
+            if (hasDiscount) {
+                oldPriceEl.textContent = formatTenge(rawTotal);
+                oldPriceEl.classList.remove('hidden');
+            } else {
+                oldPriceEl.classList.add('hidden');
+            }
+            estimateTimeEl.textContent = `⏱ Срок: ${durationText}`;
+            updateSliderTrackFill();
+
+            const lines = [
+                `Здравствуйте! Хочу зафиксировать расчёт (${cfg.badge}):`,
+                `• ${cfg.sliderLabel}: ${sliderValue} ${cfg.unit}`,
+                `• Тариф: ${tier.name} (${tier.subtitle})`,
+                chosenAddonNames.length ? `• Доп. опции: ${chosenAddonNames.join(', ')}` : `• Доп. опции: нет`,
+                `• Ориентировочный срок: ${durationText}`,
+                hasDiscount ? `• Скидка −10% применена` : `• Без скидки`,
+                `💰 Итого: ${formatTenge(finalTotal)}`
+            ];
+            lastWhatsappMessage = lines.join('\n');
+            whatsappLinkEl.href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(lastWhatsappMessage)}`;
+        }
+
+        document.querySelectorAll('.niche-tab').forEach(tab => {
+            tab.addEventListener('click', () => renderNiche(tab.dataset.niche));
+        });
+
+        mainSlider.addEventListener('input', (e) => {
+            sliderValue = parseInt(e.target.value, 10);
+            updateSliderTrackFill();
+            recalculate();
+        });
+
+        discountToggle.addEventListener('change', recalculate);
+
+        resetBtn.addEventListener('click', () => {
+            discountToggle.checked = true;
+            renderNiche(currentNicheKey);
+            showToast('Параметры сброшены');
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!lastWhatsappMessage) return;
+            const tempArea = document.createElement('textarea');
+            tempArea.value = lastWhatsappMessage;
+            tempArea.setAttribute('readonly', '');
+            tempArea.style.position = 'absolute';
+            tempArea.style.left = '-9999px';
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Расчёт скопирован в буфер обмена');
+            } catch (e) {
+                showToast('Не удалось скопировать');
+            }
+            document.body.removeChild(tempArea);
+        });
+
+        function dismissIntroSplash() {
+            const splash = document.getElementById('intro-splash');
+            document.body.classList.add('app-ready');
+            if (splash) {
+                splash.classList.add('intro-exit');
+                setTimeout(() => {
+                    if (splash && splash.parentNode) {
+                        splash.remove();
+                    }
+                }, 800);
+            }
+        }
+
+        try {
+            renderNiche('repair');
+        } catch (err) {
+            console.error('Ошибка отрисовки ниши:', err);
+        }
+
+        const introProgress = document.getElementById('intro-progress');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (introProgress) introProgress.style.width = '100%';
+            });
+        });
+
+        setTimeout(dismissIntroSplash, 950);
+        setTimeout(dismissIntroSplash, 2200);
+    </script>
+</body>
+</html>
